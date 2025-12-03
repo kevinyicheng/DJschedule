@@ -122,6 +122,11 @@
             </div>
             
             <div class="flex items-center gap-4">
+                <!-- 自動儲存狀態提示 -->
+                <div id="save-status" class="hidden text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 transition-all duration-500 opacity-0 transform translate-y-1">
+                    ✓ 已自動儲存
+                </div>
+
                 <div class="hidden md:flex items-center gap-2 text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
                     <span class="w-2 h-2 rounded-full bg-indigo-500"></span> 櫃檯 A
                     <span class="w-2 h-2 rounded-full bg-cyan-500 ml-2"></span> 櫃檯 B
@@ -678,7 +683,76 @@
             const draggables = document.querySelectorAll('.card-draggable');
             const dropZones = document.querySelectorAll('.drop-zone');
             
-            // 處理拖拉與輸入框的衝突
+            // State Management Functions
+            function saveState() {
+                const state = [];
+                document.querySelectorAll('.drop-zone').forEach((zone, index) => {
+                    const card = zone.querySelector('.card-draggable');
+                    if (card) {
+                        const input = card.querySelector('.input-premium');
+                        state.push({
+                            zoneIndex: index,
+                            cardId: card.id,
+                            agentName: input ? input.innerText : ''
+                        });
+                    }
+                });
+                localStorage.setItem('scheduleState_v1', JSON.stringify(state));
+                showSaveStatus();
+            }
+
+            function loadState() {
+                const saved = localStorage.getItem('scheduleState_v1');
+                if (!saved) return;
+                
+                try {
+                    const state = JSON.parse(saved);
+                    const zones = document.querySelectorAll('.drop-zone');
+                    const cardsMap = new Map();
+                    
+                    // Index all cards
+                    document.querySelectorAll('.card-draggable').forEach(card => {
+                        cardsMap.set(card.id, card);
+                    });
+
+                    // Restore positions and text
+                    state.forEach(item => {
+                        const zone = zones[item.zoneIndex];
+                        const card = cardsMap.get(item.cardId);
+                        
+                        if (zone && card) {
+                            if (zone.firstElementChild !== card) {
+                                zone.appendChild(card);
+                            }
+                            
+                            const input = card.querySelector('.input-premium');
+                            if (input) {
+                                input.innerText = item.agentName;
+                            }
+                        }
+                    });
+                } catch (e) {
+                    console.error("Failed to load state", e);
+                }
+            }
+
+            function showSaveStatus() {
+                const status = document.getElementById('save-status');
+                if (status) {
+                    status.classList.remove('hidden', 'opacity-0', 'translate-y-1');
+                    status.classList.add('opacity-100', 'translate-y-0');
+                    setTimeout(() => {
+                        status.classList.remove('opacity-100', 'translate-y-0');
+                        status.classList.add('opacity-0', 'translate-y-1');
+                        setTimeout(() => status.classList.add('hidden'), 500);
+                    }, 1000);
+                }
+            }
+
+            // Initialize State
+            loadState();
+
+            // 處理拖拉與輸入框的衝突 & 綁定輸入監聽
             const editableAreas = document.querySelectorAll('.input-premium');
             editableAreas.forEach(area => {
                 area.addEventListener('mouseenter', () => {
@@ -688,6 +762,10 @@
                 area.addEventListener('mouseleave', () => {
                     const card = area.closest('.card-draggable');
                     if (card) card.setAttribute('draggable', 'true');
+                });
+                // Add input listener for auto-save
+                area.addEventListener('input', () => {
+                    saveState();
                 });
             });
 
@@ -741,6 +819,9 @@
                         sourceZone.appendChild(existingCard);
                     }
                     targetZone.appendChild(draggedElement);
+                    
+                    // Trigger save after drop
+                    saveState();
                 });
             });
         });
