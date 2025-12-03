@@ -2,10 +2,15 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>產險續保行程表 - 專業版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>產險續保行程表 - 手機優化版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- 加入手機觸控拖拉支援 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/default.css">
+    <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/scroll-behaviour.min.js"></script>
+
     <style>
         :root {
             --slate-850: #1e293b;
@@ -14,11 +19,12 @@
             font-family: 'Inter', 'Noto Sans TC', sans-serif;
             background-color: #f1f5f9; /* Slate-100 */
             color: #334155; /* Slate-700 */
+            -webkit-tap-highlight-color: transparent; /* 移除手機點擊藍框 */
         }
         
         /* 玻璃擬態與頂部導航 */
         .premium-header {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid rgba(226, 232, 240, 0.8);
         }
@@ -26,29 +32,27 @@
         /* 卡片拖拉效果優化 */
         .card-draggable {
             cursor: grab;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s;
             position: relative;
             overflow: hidden;
-        }
-        .card-draggable:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+            touch-action: none; /* 防止拖拉時觸發捲動 */
         }
         .card-draggable:active {
             cursor: grabbing;
         }
         .card-draggable.dragging {
-            opacity: 0.6;
-            transform: scale(0.98);
+            opacity: 0.8;
+            transform: scale(1.02);
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            border: 1px solid #3b82f6;
-            z-index: 50;
+            border: 2px solid #3b82f6;
+            z-index: 100;
+            background: white;
         }
 
         /* 放置區域 */
         .drop-zone {
             transition: all 0.2s ease;
-            min-height: 120px;
+            min-height: 110px;
             height: 100%;
             display: flex;
             flex-direction: column;
@@ -56,8 +60,8 @@
             border-radius: 0.75rem; /* rounded-xl */
         }
         .drop-zone.drag-over {
-            background-color: #f8fafc;
-            box-shadow: inset 0 0 0 2px #cbd5e1;
+            background-color: #eff6ff;
+            box-shadow: inset 0 0 0 2px #3b82f6;
         }
 
         /* 空檔區域的質感紋理 */
@@ -75,15 +79,12 @@
         .input-premium {
             transition: all 0.2s;
             border-radius: 4px;
-            padding: 2px 6px;
+            padding: 4px 6px; /* 加大觸控範圍 */
         }
         .input-premium:empty:before {
             content: attr(placeholder);
             color: #cbd5e1;
             font-size: 0.75rem;
-        }
-        .input-premium:hover {
-            background-color: #f1f5f9;
         }
         .input-premium:focus {
             background-color: #fff;
@@ -101,108 +102,112 @@
             [contenteditable]:empty:before { content: ""; }
             .empty-placeholder { color: #e2e8f0 !important; }
             .no-print { display: none; }
+            /* 強制列印時使用桌機佈局 */
+            .mobile-label { display: none !important; }
+            .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+            .md\:col-span-1 { grid-column: span 1 / span 1 !important; }
+            .md\:block { display: block !important; }
+            .md\:hidden { display: none !important; }
         }
     </style>
 </head>
-<body class="antialiased min-h-screen pb-20">
+<body class="antialiased min-h-screen pb-20 safe-area-inset-bottom">
 
     <!-- 頂部標題區 -->
     <header class="premium-header sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-            <div class="flex items-center gap-5">
-                <div class="bg-slate-800 text-white p-2.5 rounded-lg shadow-lg shadow-slate-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3 sm:gap-5">
+                <div class="bg-slate-800 text-white p-2 rounded-lg shadow-lg shadow-slate-200 shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
                 </div>
-                <div>
-                    <h1 class="text-2xl font-bold text-slate-800 tracking-tight leading-none">鼎佳對保排程</h1>
-                    <p class="text-xs text-slate-500 font-medium mt-1 tracking-wide uppercase">Premium Schedule System</p>
+                <div class="truncate">
+                    <h1 class="text-lg sm:text-2xl font-bold text-slate-800 tracking-tight leading-none truncate">鼎佳對保</h1>
+                    <p class="text-[10px] sm:text-xs text-slate-500 font-medium mt-0.5 tracking-wide uppercase">Mobile Schedule</p>
                 </div>
             </div>
             
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
                 <!-- 自動儲存狀態提示 -->
-                <div id="save-status" class="hidden text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 transition-all duration-500 opacity-0 transform translate-y-1">
-                    ✓ 已自動儲存
-                </div>
-
-                <div class="hidden md:flex items-center gap-2 text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
-                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span> 櫃檯 A
-                    <span class="w-2 h-2 rounded-full bg-cyan-500 ml-2"></span> 櫃檯 B
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 ml-2"></span> 櫃檯 C
-                </div>
-                <div class="hidden sm:flex text-sm font-medium text-slate-600 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm items-center gap-2">
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                    拖曳調整
+                <div id="save-status" class="hidden text-[10px] sm:text-xs font-bold text-emerald-600 bg-emerald-50 px-2 sm:px-3 py-1 rounded-full border border-emerald-200 transition-all duration-500 opacity-0 transform translate-y-1 whitespace-nowrap">
+                    ✓ 已儲存
                 </div>
             </div>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-16">
+    <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-12">
 
         <!-- 12/18 週四 -->
         <section>
-            <div class="flex items-end gap-4 mb-8 border-b border-slate-200 pb-4">
-                <span class="text-5xl font-light text-slate-800 tracking-tighter">12/18</span>
-                <span class="pb-1.5 px-3 py-1 bg-slate-800 text-white text-xs font-bold rounded uppercase tracking-widest shadow-md">Thursday</span>
+            <div class="flex items-end gap-3 mb-6 border-b border-slate-200 pb-3 px-1">
+                <span class="text-4xl sm:text-5xl font-light text-slate-800 tracking-tighter">12/18</span>
+                <span class="pb-1.5 px-2 sm:px-3 py-1 bg-slate-800 text-white text-[10px] sm:text-xs font-bold rounded uppercase tracking-widest shadow-md">週四</span>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden ring-1 ring-slate-100 select-none">
-                <!-- 極簡表頭 -->
-                <div class="grid grid-cols-12 border-b border-slate-100 bg-slate-50/50">
-                    <div class="col-span-2 md:col-span-1 p-4 flex items-center justify-center border-r border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-widest">Time</div>
-                    <div class="col-span-10 md:col-span-11 grid grid-cols-3">
-                        <div class="p-4 text-center border-r border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">Counter 1</div>
-                        <div class="p-4 text-center border-r border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">Counter 2</div>
-                        <div class="p-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Counter 3</div>
+            <div class="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl shadow-slate-200/50 overflow-hidden ring-1 ring-slate-100">
+                <!-- RWD 表頭：手機隱藏，桌機顯示 -->
+                <div class="hidden md:grid grid-cols-12 border-b border-slate-100 bg-slate-50/50">
+                    <div class="col-span-1 p-4 flex items-center justify-center border-r border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-widest">時間</div>
+                    <div class="col-span-11 grid grid-cols-3">
+                        <div class="p-4 text-center border-r border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">櫃檯 1</div>
+                        <div class="p-4 text-center border-r border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">櫃檯 2</div>
+                        <div class="p-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">櫃檯 3</div>
                     </div>
                 </div>
 
                 <!-- 10:00 Row -->
-                <div class="grid grid-cols-12 border-b border-slate-50 hover:bg-slate-50/30 transition-colors group/row">
-                    <div class="col-span-2 md:col-span-1 p-4 flex items-center justify-center font-medium text-slate-400 border-r border-slate-100 text-sm">10:00</div>
-                    <div class="col-span-10 md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-12 border-b border-slate-50 md:hover:bg-slate-50/30 transition-colors group/row">
+                    <!-- 手機版時間標題 -->
+                    <div class="md:col-span-1 p-3 md:p-4 flex items-center md:justify-center bg-slate-50 md:bg-transparent border-b md:border-b-0 md:border-r border-slate-100">
+                        <span class="font-bold text-slate-600 text-lg md:text-sm mr-2 md:mr-0">10:00</span>
+                        <span class="md:hidden text-xs text-slate-400 font-normal">時段</span>
+                    </div>
+                    
+                    <div class="md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-y md:divide-y-0 divide-slate-100">
                         <!-- Slot 1 -->
                         <div class="p-3 drop-zone" data-group="1218-1000">
-                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-indigo-200" draggable="true" id="card-1218-1000-1">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 1</div>
+                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-indigo-200" draggable="true" id="card-1218-1000-1">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">連百翔</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">連百翔</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">A1-14</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 2 -->
                         <div class="p-3 drop-zone" data-group="1218-1000">
-                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-cyan-200" draggable="true" id="card-1218-1000-2">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 2</div>
+                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-cyan-200" draggable="true" id="card-1218-1000-2">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">江珮欣</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">江珮欣</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">C1-03</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 3 -->
                         <div class="p-3 drop-zone" data-group="1218-1000">
-                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-emerald-200" draggable="true" id="card-1218-1000-3">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 3</div>
+                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-emerald-200" draggable="true" id="card-1218-1000-3">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">李建明</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">李建明</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">C3-06</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-emerald-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-emerald-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
@@ -210,48 +215,54 @@
                 </div>
 
                 <!-- 11:00 Row -->
-                <div class="grid grid-cols-12 border-b border-slate-50 hover:bg-slate-50/30 transition-colors group/row">
-                    <div class="col-span-2 md:col-span-1 p-4 flex items-center justify-center font-medium text-slate-400 border-r border-slate-100 text-sm">11:00</div>
-                    <div class="col-span-10 md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-12 border-b border-slate-50 md:hover:bg-slate-50/30 transition-colors group/row">
+                    <div class="md:col-span-1 p-3 md:p-4 flex items-center md:justify-center bg-slate-50 md:bg-transparent border-b md:border-b-0 md:border-r border-slate-100">
+                        <span class="font-bold text-slate-600 text-lg md:text-sm mr-2 md:mr-0">11:00</span>
+                        <span class="md:hidden text-xs text-slate-400 font-normal">時段</span>
+                    </div>
+                    <div class="md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-y md:divide-y-0 divide-slate-100">
                          <!-- Slot 1 -->
                          <div class="p-3 drop-zone" data-group="1218-1100">
-                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-indigo-200" draggable="true" id="card-1218-1100-1">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 1</div>
+                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-indigo-200" draggable="true" id="card-1218-1100-1">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">吳旻鴻</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">吳旻鴻</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">A2-11</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 2 -->
                         <div class="p-3 drop-zone" data-group="1218-1100">
-                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-cyan-200" draggable="true" id="card-1218-1100-2">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 2</div>
+                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-cyan-200" draggable="true" id="card-1218-1100-2">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">葉時裕</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">葉時裕</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">B1-03</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 3 -->
                         <div class="p-3 drop-zone" data-group="1218-1100">
-                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-emerald-200" draggable="true" id="card-1218-1100-3">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 3</div>
+                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-emerald-200" draggable="true" id="card-1218-1100-3">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">陳萱淇</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">陳萱淇</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">C2-02</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-emerald-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-emerald-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
@@ -259,52 +270,58 @@
                 </div>
 
                 <!-- 13:00 Row -->
-                <div class="grid grid-cols-12 border-b border-slate-50 hover:bg-slate-50/30 transition-colors group/row">
-                    <div class="col-span-2 md:col-span-1 p-4 flex items-center justify-center font-medium text-slate-400 border-r border-slate-100 text-sm">13:00</div>
-                    <div class="col-span-10 md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-12 border-b border-slate-50 md:hover:bg-slate-50/30 transition-colors group/row">
+                    <div class="md:col-span-1 p-3 md:p-4 flex items-center md:justify-center bg-slate-50 md:bg-transparent border-b md:border-b-0 md:border-r border-slate-100">
+                        <span class="font-bold text-slate-600 text-lg md:text-sm mr-2 md:mr-0">13:00</span>
+                        <span class="md:hidden text-xs text-slate-400 font-normal">時段</span>
+                    </div>
+                    <div class="md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-y md:divide-y-0 divide-slate-100">
                         <!-- Slot 1 -->
                         <div class="p-3 drop-zone" data-group="1218-1300">
-                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-indigo-200" draggable="true" id="card-1218-1300-1">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 1</div>
+                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-indigo-200" draggable="true" id="card-1218-1300-1">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">沈藴伶</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">沈藴伶</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">B2-05</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 2 -->
                         <div class="p-3 drop-zone" data-group="1218-1300">
-                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-cyan-200" draggable="true" id="card-1218-1300-2">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 2</div>
+                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-cyan-200" draggable="true" id="card-1218-1300-2">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
                                     <div class="flex flex-col xl:flex-row xl:items-center gap-1">
-                                        <span class="font-bold text-slate-800 text-lg tracking-tight">廖尉如</span>
+                                        <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">廖尉如</span>
                                         <span class="hidden xl:inline text-slate-300">/</span>
-                                        <span class="font-bold text-slate-800 text-lg tracking-tight">林金泉</span>
+                                        <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">林金泉</span>
                                     </div>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">B3-06</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 3 -->
                         <div class="p-3 drop-zone" data-group="1218-1300">
-                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-emerald-200" draggable="true" id="card-1218-1300-3">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 3</div>
+                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-emerald-200" draggable="true" id="card-1218-1300-3">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">顏子青</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">顏子青</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">C1-07</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-emerald-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-emerald-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
@@ -312,48 +329,54 @@
                 </div>
 
                 <!-- 14:00 Row -->
-                <div class="grid grid-cols-12 border-b border-slate-50 hover:bg-slate-50/30 transition-colors group/row">
-                    <div class="col-span-2 md:col-span-1 p-4 flex items-center justify-center font-medium text-slate-400 border-r border-slate-100 text-sm">14:00</div>
-                    <div class="col-span-10 md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-12 border-b border-slate-50 md:hover:bg-slate-50/30 transition-colors group/row">
+                    <div class="md:col-span-1 p-3 md:p-4 flex items-center md:justify-center bg-slate-50 md:bg-transparent border-b md:border-b-0 md:border-r border-slate-100">
+                        <span class="font-bold text-slate-600 text-lg md:text-sm mr-2 md:mr-0">14:00</span>
+                        <span class="md:hidden text-xs text-slate-400 font-normal">時段</span>
+                    </div>
+                    <div class="md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-y md:divide-y-0 divide-slate-100">
                          <!-- Slot 1 -->
                          <div class="p-3 drop-zone" data-group="1218-1400">
-                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-indigo-200" draggable="true" id="card-1218-1400-1">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 1</div>
+                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-indigo-200" draggable="true" id="card-1218-1400-1">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">許又璇</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">許又璇</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">B1-06</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 2 -->
                         <div class="p-3 drop-zone" data-group="1218-1400">
-                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-cyan-200" draggable="true" id="card-1218-1400-2">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 2</div>
+                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-cyan-200" draggable="true" id="card-1218-1400-2">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">魏睿成</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">魏睿成</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">B5-07</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 3 -->
                         <div class="p-3 drop-zone" data-group="1218-1400">
-                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-emerald-200" draggable="true" id="card-1218-1400-3">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 3</div>
+                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-emerald-200" draggable="true" id="card-1218-1400-3">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">張婷伊</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">張婷伊</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">C5-04</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-emerald-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-emerald-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
@@ -361,40 +384,46 @@
                 </div>
 
                 <!-- 15:00 Row -->
-                <div class="grid grid-cols-12 hover:bg-slate-50/30 transition-colors group/row">
-                    <div class="col-span-2 md:col-span-1 p-4 flex items-center justify-center font-medium text-slate-400 border-r border-slate-100 text-sm">15:00</div>
-                    <div class="col-span-10 md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-12 hover:bg-slate-50/30 transition-colors group/row">
+                    <div class="md:col-span-1 p-3 md:p-4 flex items-center md:justify-center bg-slate-50 md:bg-transparent border-b md:border-b-0 md:border-r border-slate-100">
+                        <span class="font-bold text-slate-600 text-lg md:text-sm mr-2 md:mr-0">15:00</span>
+                        <span class="md:hidden text-xs text-slate-400 font-normal">時段</span>
+                    </div>
+                    <div class="md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-y md:divide-y-0 divide-slate-100">
                          <!-- Slot 1 -->
                          <div class="p-3 drop-zone" data-group="1218-1500">
-                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-indigo-200" draggable="true" id="card-1218-1500-1">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 1</div>
+                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-indigo-200" draggable="true" id="card-1218-1500-1">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">魏乃傑</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">魏乃傑</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">B5-11</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 2 -->
                         <div class="p-3 drop-zone" data-group="1218-1500">
-                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-cyan-200" draggable="true" id="card-1218-1500-2">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 2</div>
+                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-cyan-200" draggable="true" id="card-1218-1500-2">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">易仕婷</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">易仕婷</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">C3-02</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 3 (Empty) -->
                         <div class="p-3 drop-zone" data-group="1218-1500">
-                            <div class="card-draggable empty-slot-bg border-2 border-dashed border-slate-200 rounded-lg p-4 flex flex-col gap-2 h-full justify-center items-center min-h-[100px] text-slate-300" draggable="true" id="empty-1218-1500-3">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 3</div>
+                            <div class="card-draggable empty-slot-bg border-2 border-dashed border-slate-200 rounded-lg p-3 sm:p-4 flex flex-col gap-2 h-full justify-center items-center min-h-[100px] text-slate-300" draggable="true" id="empty-1218-1500-3">
                                 <span class="font-medium text-sm uppercase tracking-widest">Available</span>
                             </div>
                         </div>
@@ -406,65 +435,71 @@
 
         <!-- 12/19 週五 -->
         <section class="print-break pt-8 md:pt-0">
-            <div class="flex items-end gap-4 mb-8 border-b border-slate-200 pb-4">
-                <span class="text-5xl font-light text-slate-800 tracking-tighter">12/19</span>
-                <span class="pb-1.5 px-3 py-1 bg-teal-700 text-white text-xs font-bold rounded uppercase tracking-widest shadow-md">Friday</span>
+            <div class="flex items-end gap-3 mb-6 border-b border-slate-200 pb-3 px-1">
+                <span class="text-4xl sm:text-5xl font-light text-slate-800 tracking-tighter">12/19</span>
+                <span class="pb-1.5 px-2 sm:px-3 py-1 bg-teal-700 text-white text-[10px] sm:text-xs font-bold rounded uppercase tracking-widest shadow-md">週五</span>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden ring-1 ring-slate-100 select-none">
+            <div class="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl shadow-slate-200/50 overflow-hidden ring-1 ring-slate-100 select-none">
                 <!-- 極簡表頭 -->
-                <div class="grid grid-cols-12 border-b border-slate-100 bg-slate-50/50">
-                    <div class="col-span-2 md:col-span-1 p-4 flex items-center justify-center border-r border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-widest">Time</div>
-                    <div class="col-span-10 md:col-span-11 grid grid-cols-3">
-                        <div class="p-4 text-center border-r border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">Counter 1</div>
-                        <div class="p-4 text-center border-r border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">Counter 2</div>
-                        <div class="p-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Counter 3</div>
+                <div class="hidden md:grid grid-cols-12 border-b border-slate-100 bg-slate-50/50">
+                    <div class="col-span-1 p-4 flex items-center justify-center border-r border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-widest">時間</div>
+                    <div class="col-span-11 grid grid-cols-3">
+                        <div class="p-4 text-center border-r border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">櫃檯 1</div>
+                        <div class="p-4 text-center border-r border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">櫃檯 2</div>
+                        <div class="p-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">櫃檯 3</div>
                     </div>
                 </div>
 
                 <!-- 09:00 Row -->
-                <div class="grid grid-cols-12 border-b border-slate-50 hover:bg-slate-50/30 transition-colors group/row">
-                    <div class="col-span-2 md:col-span-1 p-4 flex items-center justify-center font-medium text-slate-400 border-r border-slate-100 text-sm">09:00</div>
-                    <div class="col-span-10 md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-12 border-b border-slate-50 md:hover:bg-slate-50/30 transition-colors group/row">
+                    <div class="md:col-span-1 p-3 md:p-4 flex items-center md:justify-center bg-slate-50 md:bg-transparent border-b md:border-b-0 md:border-r border-slate-100">
+                        <span class="font-bold text-slate-600 text-lg md:text-sm mr-2 md:mr-0">09:00</span>
+                        <span class="md:hidden text-xs text-slate-400 font-normal">時段</span>
+                    </div>
+                    <div class="md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-y md:divide-y-0 divide-slate-100">
                         <!-- Slot 1 -->
                         <div class="p-3 drop-zone" data-group="1219-0900">
-                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-indigo-200" draggable="true" id="card-1219-0900-1">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 1</div>
+                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-indigo-200" draggable="true" id="card-1219-0900-1">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">蔡旻真</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">蔡旻真</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">A2-04</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 2 -->
                         <div class="p-3 drop-zone" data-group="1219-0900">
-                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-cyan-200" draggable="true" id="card-1219-0900-2">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 2</div>
+                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-cyan-200" draggable="true" id="card-1219-0900-2">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">王姿岑</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">王姿岑</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">B3-05</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 3 -->
                         <div class="p-3 drop-zone" data-group="1219-0900">
-                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-emerald-200" draggable="true" id="card-1219-0900-3">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 3</div>
+                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-emerald-200" draggable="true" id="card-1219-0900-3">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">許家榮</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">許家榮</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">B3-11</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-emerald-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-emerald-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
@@ -472,40 +507,46 @@
                 </div>
 
                 <!-- 10:00 Row -->
-                <div class="grid grid-cols-12 border-b border-slate-50 hover:bg-slate-50/30 transition-colors group/row">
-                    <div class="col-span-2 md:col-span-1 p-4 flex items-center justify-center font-medium text-slate-400 border-r border-slate-100 text-sm">10:00</div>
-                    <div class="col-span-10 md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-12 border-b border-slate-50 md:hover:bg-slate-50/30 transition-colors group/row">
+                    <div class="md:col-span-1 p-3 md:p-4 flex items-center md:justify-center bg-slate-50 md:bg-transparent border-b md:border-b-0 md:border-r border-slate-100">
+                        <span class="font-bold text-slate-600 text-lg md:text-sm mr-2 md:mr-0">10:00</span>
+                        <span class="md:hidden text-xs text-slate-400 font-normal">時段</span>
+                    </div>
+                    <div class="md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-y md:divide-y-0 divide-slate-100">
                         <!-- Slot 1 -->
                         <div class="p-3 drop-zone" data-group="1219-1000">
-                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-indigo-200" draggable="true" id="card-1219-1000-1">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 1</div>
+                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-indigo-200" draggable="true" id="card-1219-1000-1">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">廖文瑞</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">廖文瑞</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">A5-13</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 2 -->
                         <div class="p-3 drop-zone" data-group="1219-1000">
-                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-cyan-200" draggable="true" id="card-1219-1000-2">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 2</div>
+                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-cyan-200" draggable="true" id="card-1219-1000-2">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">李照俠</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">李照俠</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">B1-11</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                          <!-- Slot 3 (Empty) -->
                         <div class="p-3 drop-zone" data-group="1219-1000">
-                            <div class="card-draggable empty-slot-bg border-2 border-dashed border-slate-200 rounded-lg p-4 flex flex-col gap-2 h-full justify-center items-center min-h-[100px] text-slate-300" draggable="true" id="empty-1219-1000-3">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 3</div>
+                            <div class="card-draggable empty-slot-bg border-2 border-dashed border-slate-200 rounded-lg p-3 sm:p-4 flex flex-col gap-2 h-full justify-center items-center min-h-[100px] text-slate-300" draggable="true" id="empty-1219-1000-3">
                                 <span class="font-medium text-sm uppercase tracking-widest">Available</span>
                             </div>
                         </div>
@@ -513,40 +554,46 @@
                 </div>
 
                 <!-- 11:00 Row -->
-                <div class="grid grid-cols-12 border-b border-slate-50 hover:bg-slate-50/30 transition-colors group/row">
-                    <div class="col-span-2 md:col-span-1 p-4 flex items-center justify-center font-medium text-slate-400 border-r border-slate-100 text-sm">11:00</div>
-                    <div class="col-span-10 md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-12 border-b border-slate-50 md:hover:bg-slate-50/30 transition-colors group/row">
+                    <div class="md:col-span-1 p-3 md:p-4 flex items-center md:justify-center bg-slate-50 md:bg-transparent border-b md:border-b-0 md:border-r border-slate-100">
+                        <span class="font-bold text-slate-600 text-lg md:text-sm mr-2 md:mr-0">11:00</span>
+                        <span class="md:hidden text-xs text-slate-400 font-normal">時段</span>
+                    </div>
+                    <div class="md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-y md:divide-y-0 divide-slate-100">
                         <!-- Slot 1 -->
                         <div class="p-3 drop-zone" data-group="1219-1100">
-                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-indigo-200" draggable="true" id="card-1219-1100-1">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 1</div>
+                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-indigo-200" draggable="true" id="card-1219-1100-1">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">鄭育晉</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">鄭育晉</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">A5-02</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 2 -->
                         <div class="p-3 drop-zone" data-group="1219-1100">
-                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-cyan-200" draggable="true" id="card-1219-1100-2">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 2</div>
+                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-cyan-200" draggable="true" id="card-1219-1100-2">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">楊文堯</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">楊文堯</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">B1-07</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                          <!-- Slot 3 (Empty) -->
                         <div class="p-3 drop-zone" data-group="1219-1100">
-                            <div class="card-draggable empty-slot-bg border-2 border-dashed border-slate-200 rounded-lg p-4 flex flex-col gap-2 h-full justify-center items-center min-h-[100px] text-slate-300" draggable="true" id="empty-1219-1100-3">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 3</div>
+                            <div class="card-draggable empty-slot-bg border-2 border-dashed border-slate-200 rounded-lg p-3 sm:p-4 flex flex-col gap-2 h-full justify-center items-center min-h-[100px] text-slate-300" draggable="true" id="empty-1219-1100-3">
                                 <span class="font-medium text-sm uppercase tracking-widest">Available</span>
                             </div>
                         </div>
@@ -554,32 +601,38 @@
                 </div>
 
                 <!-- 13:00 Row -->
-                <div class="grid grid-cols-12 border-b border-slate-50 hover:bg-slate-50/30 transition-colors group/row">
-                    <div class="col-span-2 md:col-span-1 p-4 flex items-center justify-center font-medium text-slate-400 border-r border-slate-100 text-sm">13:00</div>
-                    <div class="col-span-10 md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-12 border-b border-slate-50 md:hover:bg-slate-50/30 transition-colors group/row">
+                    <div class="md:col-span-1 p-3 md:p-4 flex items-center md:justify-center bg-slate-50 md:bg-transparent border-b md:border-b-0 md:border-r border-slate-100">
+                        <span class="font-bold text-slate-600 text-lg md:text-sm mr-2 md:mr-0">13:00</span>
+                        <span class="md:hidden text-xs text-slate-400 font-normal">時段</span>
+                    </div>
+                    <div class="md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-y md:divide-y-0 divide-slate-100">
                         <!-- Slot 1 -->
                         <div class="p-3 drop-zone" data-group="1219-1300">
-                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-indigo-200" draggable="true" id="card-1219-1300-1">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 1</div>
+                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-indigo-200" draggable="true" id="card-1219-1300-1">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">郭美女</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">郭美女</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">B3-12</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
-                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
+                                    <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 2 (Empty) -->
                         <div class="p-3 drop-zone" data-group="1219-1300">
-                            <div class="card-draggable empty-slot-bg border-2 border-dashed border-slate-200 rounded-lg p-4 flex flex-col gap-2 h-full justify-center items-center min-h-[100px] text-slate-300" draggable="true" id="empty-1219-1300-2">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 2</div>
+                            <div class="card-draggable empty-slot-bg border-2 border-dashed border-slate-200 rounded-lg p-3 sm:p-4 flex flex-col gap-2 h-full justify-center items-center min-h-[100px] text-slate-300" draggable="true" id="empty-1219-1300-2">
                                 <span class="font-medium text-sm uppercase tracking-widest">Available</span>
                             </div>
                         </div>
                          <!-- Slot 3 (Empty) -->
                         <div class="p-3 drop-zone" data-group="1219-1300">
-                            <div class="card-draggable empty-slot-bg border-2 border-dashed border-slate-200 rounded-lg p-4 flex flex-col gap-2 h-full justify-center items-center min-h-[100px] text-slate-300" draggable="true" id="empty-1219-1300-3">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 3</div>
+                            <div class="card-draggable empty-slot-bg border-2 border-dashed border-slate-200 rounded-lg p-3 sm:p-4 flex flex-col gap-2 h-full justify-center items-center min-h-[100px] text-slate-300" draggable="true" id="empty-1219-1300-3">
                                 <span class="font-medium text-sm uppercase tracking-widest">Available</span>
                             </div>
                         </div>
@@ -587,40 +640,46 @@
                 </div>
 
                  <!-- 14:00 Row -->
-                 <div class="grid grid-cols-12 border-b border-slate-50 hover:bg-slate-50/30 transition-colors group/row">
-                    <div class="col-span-2 md:col-span-1 p-4 flex items-center justify-center font-medium text-slate-400 border-r border-slate-100 text-sm">14:00</div>
-                    <div class="col-span-10 md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-slate-100">
+                 <div class="grid grid-cols-1 md:grid-cols-12 border-b border-slate-50 md:hover:bg-slate-50/30 transition-colors group/row">
+                    <div class="md:col-span-1 p-3 md:p-4 flex items-center md:justify-center bg-slate-50 md:bg-transparent border-b md:border-b-0 md:border-r border-slate-100">
+                        <span class="font-bold text-slate-600 text-lg md:text-sm mr-2 md:mr-0">14:00</span>
+                        <span class="md:hidden text-xs text-slate-400 font-normal">時段</span>
+                    </div>
+                    <div class="md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-y md:divide-y-0 divide-slate-100">
                         <!-- Slot 1 -->
                         <div class="p-3 drop-zone" data-group="1219-1400">
-                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-indigo-200" draggable="true" id="card-1219-1400-1">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 1</div>
+                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-indigo-200" draggable="true" id="card-1219-1400-1">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">王伯君</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">王伯君</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">C3-01</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
                                     <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 2 -->
                         <div class="p-3 drop-zone" data-group="1219-1400">
-                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-cyan-200" draggable="true" id="card-1219-1400-2">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 2</div>
+                             <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-cyan-200" draggable="true" id="card-1219-1400-2">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">林孟萱</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">林孟萱</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">C5-03</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
                                     <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
                                 </div>
                             </div>
                         </div>
                          <!-- Slot 3 (Empty) -->
                         <div class="p-3 drop-zone" data-group="1219-1400">
-                            <div class="card-draggable empty-slot-bg border-2 border-dashed border-slate-200 rounded-lg p-4 flex flex-col gap-2 h-full justify-center items-center min-h-[100px] text-slate-300" draggable="true" id="empty-1219-1400-3">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 3</div>
+                            <div class="card-draggable empty-slot-bg border-2 border-dashed border-slate-200 rounded-lg p-3 sm:p-4 flex flex-col gap-2 h-full justify-center items-center min-h-[100px] text-slate-300" draggable="true" id="empty-1219-1400-3">
                                 <span class="font-medium text-sm uppercase tracking-widest">Available</span>
                             </div>
                         </div>
@@ -628,40 +687,46 @@
                 </div>
 
                 <!-- 15:00 Row -->
-                <div class="grid grid-cols-12 hover:bg-slate-50/30 transition-colors group/row">
-                    <div class="col-span-2 md:col-span-1 p-4 flex items-center justify-center font-medium text-slate-400 border-r border-slate-100 text-sm">15:00</div>
-                    <div class="col-span-10 md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-12 hover:bg-slate-50/30 transition-colors group/row">
+                    <div class="md:col-span-1 p-3 md:p-4 flex items-center md:justify-center bg-slate-50 md:bg-transparent border-b md:border-b-0 md:border-r border-slate-100">
+                        <span class="font-bold text-slate-600 text-lg md:text-sm mr-2 md:mr-0">15:00</span>
+                        <span class="md:hidden text-xs text-slate-400 font-normal">時段</span>
+                    </div>
+                    <div class="md:col-span-11 grid grid-cols-1 md:grid-cols-3 md:divide-x divide-y md:divide-y-0 divide-slate-100">
                          <!-- Slot 1 -->
                          <div class="p-3 drop-zone" data-group="1219-1500">
-                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-indigo-200" draggable="true" id="card-1219-1500-1">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 1</div>
+                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-indigo-200" draggable="true" id="card-1219-1500-1">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">董昕</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">董昕</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">B2-04</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
                                     <div class="input-premium w-full text-sm text-indigo-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
                                 </div>
                             </div>
                         </div>
                         <!-- Slot 2 -->
                         <div class="p-3 drop-zone" data-group="1219-1500">
-                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-100 p-4 flex flex-col gap-3 group hover:border-cyan-200" draggable="true" id="card-1219-1500-2">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 2</div>
+                            <div class="card-draggable bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 group hover:border-cyan-200" draggable="true" id="card-1219-1500-2">
                                 <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 rounded-l-lg"></div>
                                 <div class="flex justify-between items-start w-full pl-2">
-                                    <span class="font-bold text-slate-800 text-lg tracking-tight">呂昕樺</span>
+                                    <span class="font-bold text-slate-800 text-base sm:text-lg tracking-tight">呂昕樺</span>
                                     <span class="text-[10px] font-bold tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">C3-10</span>
                                 </div>
                                 <div class="border-t border-slate-50 pt-2 pl-2">
-                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">Agent</div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">對保人員</div>
                                     <div class="input-premium w-full text-sm text-cyan-700 font-medium cursor-text" contenteditable="true" placeholder="點擊輸入姓名"></div>
                                 </div>
                             </div>
                         </div>
                          <!-- Slot 3 (Empty) -->
                         <div class="p-3 drop-zone" data-group="1219-1500">
-                            <div class="card-draggable empty-slot-bg border-2 border-dashed border-slate-200 rounded-lg p-4 flex flex-col gap-2 h-full justify-center items-center min-h-[100px] text-slate-300" draggable="true" id="empty-1219-1500-3">
+                            <div class="mobile-label md:hidden text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">櫃檯 3</div>
+                            <div class="card-draggable empty-slot-bg border-2 border-dashed border-slate-200 rounded-lg p-3 sm:p-4 flex flex-col gap-2 h-full justify-center items-center min-h-[100px] text-slate-300" draggable="true" id="empty-1219-1500-3">
                                 <span class="font-medium text-sm uppercase tracking-widest">Available</span>
                             </div>
                         </div>
@@ -677,9 +742,24 @@
         Professional Schedule System &copy; 2025
     </footer>
 
-    <!-- Drag and Drop Logic (unchanged) -->
+    <!-- Logic Script -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            
+            // Initialize mobile drag drop polyfill
+            // 這個外掛會自動偵測手機觸控，並模擬成桌面拖拉事件
+            var iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if (iOS || /Android/i.test(navigator.userAgent)) {
+                MobileDragDrop.polyfill({
+                    dragImageCenterOnTouch: true,
+                    // 強制讓長時間按住才觸發拖拉，避免影響捲動
+                    holdToDrag: 200 
+                });
+                
+                // 修正 iOS 捲動問題
+                document.addEventListener('touchmove', function() {}, {passive: false});
+            }
+
             const draggables = document.querySelectorAll('.card-draggable');
             const dropZones = document.querySelectorAll('.drop-zone');
             
@@ -697,12 +777,13 @@
                         });
                     }
                 });
-                localStorage.setItem('scheduleState_v1', JSON.stringify(state));
+                localStorage.setItem('scheduleState_v2', JSON.stringify(state));
                 showSaveStatus();
             }
 
             function loadState() {
-                const saved = localStorage.getItem('scheduleState_v1');
+                // Try load v2 first, fallback to v1 if needed (optional)
+                const saved = localStorage.getItem('scheduleState_v2') || localStorage.getItem('scheduleState_v1');
                 if (!saved) return;
                 
                 try {
@@ -717,17 +798,24 @@
 
                     // Restore positions and text
                     state.forEach(item => {
-                        const zone = zones[item.zoneIndex];
-                        const card = cardsMap.get(item.cardId);
-                        
-                        if (zone && card) {
-                            if (zone.firstElementChild !== card) {
-                                zone.appendChild(card);
-                            }
+                        if (item.zoneIndex < zones.length) {
+                            const zone = zones[item.zoneIndex];
+                            const card = cardsMap.get(item.cardId);
                             
-                            const input = card.querySelector('.input-premium');
-                            if (input) {
-                                input.innerText = item.agentName;
+                            if (zone && card) {
+                                // Clear zone content first if needed (though logic usually appends)
+                                // Ideally we check if zone already has child, but simple append works 
+                                // because we iterate all state.
+                                
+                                // If card is currently elsewhere, it moves here.
+                                if (zone.firstElementChild !== card) {
+                                    zone.appendChild(card);
+                                }
+                                
+                                const input = card.querySelector('.input-premium');
+                                if (input) {
+                                    input.innerText = item.agentName;
+                                }
                             }
                         }
                     });
@@ -755,6 +843,7 @@
             // 處理拖拉與輸入框的衝突 & 綁定輸入監聽
             const editableAreas = document.querySelectorAll('.input-premium');
             editableAreas.forEach(area => {
+                // 桌機滑鼠行為
                 area.addEventListener('mouseenter', () => {
                     const card = area.closest('.card-draggable');
                     if (card) card.setAttribute('draggable', 'false');
@@ -763,6 +852,24 @@
                     const card = area.closest('.card-draggable');
                     if (card) card.setAttribute('draggable', 'true');
                 });
+                
+                // 手機觸控行為：點擊輸入框時，暫時禁止拖拉父層
+                area.addEventListener('touchstart', (e) => {
+                    const card = area.closest('.card-draggable');
+                    if (card) card.setAttribute('draggable', 'false');
+                    e.stopPropagation(); // 停止冒泡防止觸發拖拉
+                });
+                area.addEventListener('touchend', () => {
+                    // 輸入完畢或點擊結束後恢復，但通常 focus 時不應恢復
+                    // 這裡簡化處理，依賴 blur 恢復
+                });
+                
+                area.addEventListener('blur', () => {
+                     const card = area.closest('.card-draggable');
+                     if (card) card.setAttribute('draggable', 'true');
+                     saveState(); // Blur 時也儲存
+                });
+
                 // Add input listener for auto-save
                 area.addEventListener('input', () => {
                     saveState();
@@ -775,8 +882,13 @@
                     draggable.classList.add('dragging');
                     e.dataTransfer.setData('text/plain', draggable.id);
                     e.dataTransfer.effectAllowed = 'move';
-                    const sourceGroup = draggable.closest('.drop-zone').dataset.group;
-                    e.dataTransfer.setData('source-group', sourceGroup);
+                    
+                    // Find group
+                    const zone = draggable.closest('.drop-zone');
+                    if (zone) {
+                        const sourceGroup = zone.dataset.group;
+                        e.dataTransfer.setData('source-group', sourceGroup);
+                    }
                 });
 
                 draggable.addEventListener('dragend', () => {
@@ -786,8 +898,14 @@
             });
 
             dropZones.forEach(zone => {
+                zone.addEventListener('dragenter', (e) => {
+                    e.preventDefault();
+                    zone.classList.add('drag-over');
+                });
+
                 zone.addEventListener('dragover', (e) => {
                     e.preventDefault();
+                    // Chrome requires this to allow drop
                     zone.classList.add('drag-over');
                 });
 
@@ -803,7 +921,8 @@
                     const sourceGroup = e.dataTransfer.getData('source-group');
                     const targetGroup = zone.dataset.group;
 
-                    if (sourceGroup !== targetGroup) return;
+                    // 限制同組
+                    if (sourceGroup && targetGroup && sourceGroup !== targetGroup) return;
 
                     const draggedElement = document.getElementById(draggedId);
                     if (!draggedElement) return;
@@ -813,6 +932,8 @@
 
                     if (sourceZone === targetZone) return;
 
+                    // 交換邏輯：檢查目標區是否有卡片
+                    // 注意：手機拖拉時可能會選到 label，要確保選到的是 .card-draggable
                     const existingCard = targetZone.querySelector('.card-draggable');
 
                     if (existingCard) {
